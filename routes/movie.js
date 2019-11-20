@@ -1,8 +1,22 @@
 var express = require('express');
 var router = express.Router();
 var _ = require('lodash');
+const axios = require('axios').default;
 
 var mesFilms = [];
+
+/* UN OBJET FILM
+{
+  id: String,
+  movie: String,
+  yearOfRelease: Number,
+  duration: Number // en minutes,
+  actors: [String, String],
+  poster: String // lien vers une image d'affiche,
+  boxOffice: Number // en USD$,
+  rottenTomatoesScore: Number
+ }
+ */
 
 // GET localhost:3000/movies -- Affiche tout les films
 router.get('/', (req, res) => {
@@ -26,17 +40,35 @@ router.get('/:id', (req, res) => {
 
 // PUT localhost:3000/movies/ -- Ajoute un film via son nom
 router.put('/', (req, res) => {
-    const {nomFilm, description} = req.body;
+
+    const {nomFilm} = req.body;
     const id = _.uniqueId();
+    
+    axios({
+      method : 'get',
+      url: `http://www.omdbapi.com/?t=${nomFilm}&apikey=6a6bd0f4`,
+      responseType: 'json'
 
-    mesFilms.push({nomFilm, description, id});
+    })
+    .then(function(response)
+    {
+      yearOfRelease = response.data.Year;
+      duration =  response.data.Runtime;
+      actors = response.data.Actors;
+      poster =  response.data.Poster;
+      boxOffice = response.data.BoxOffice;
+      rottenTomatoesScore = response.data.Ratings[2].Value;
 
-    //console.log("Salut je suis dans put film");
+      
+      mesFilms.push({nomFilm, yearOfRelease, duration, actors, poster, boxOffice, rottenTomatoesScore,id});
 
-    res.status(200).json({
-        message : `Le film ${id} est ajouté`,
-        film: {nomFilm, description, id}
+      console.log( `Le film ${id} est ajouté`)
     });
+    
+    //res.status(200).json({
+    //    message : `Le film ${id} est ajouté`,
+    //    film
+    //});
 });
 
 // POST localhost:3000/movies/:id -- Update un film via son id
@@ -44,17 +76,19 @@ router.post('/:id', (req, res) => {
     const { id } = req.params;
 
     // Get the new data of the user we want to update from the body of the request
-    const {nomFilm, description} = req.body;
-
-    console.log(nomFilm);
-    console.log(description);
+    const {nomFilm, yearOfRelease, duration, actors, poster, boxOffice, rottenTomatoesScore} = req.body;
 
     // Find in DB
     const filmUpdate = _.find(mesFilms, ["id", id]);
 
     // Update data with new data (js is by address)
     filmUpdate.nomFilm = nomFilm;
-    filmUpdate.description = description;
+    filmUpdate.yearOfRelease = yearOfRelease;
+    filmUpdate.duration = duration;
+    filmUpdate.actors = actors;
+    filmUpdate.poster = poster;
+    filmUpdate.boxOffice = boxOffice;
+    filmUpdate.rottenTomatoesScore = rottenTomatoesScore;
   
     // Return message
     res.json({
